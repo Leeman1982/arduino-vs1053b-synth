@@ -10,7 +10,7 @@
 
 namespace vs1053 {
   // Bring the chip up: hardware reset, SPI config, real-time MIDI plugin and
-  // (optionally) I2S output to an external PCM5102 DAC.
+  // (optionally) I2S output to an external I2S DAC.
   void begin();
 
   // Set the analogue/master output level, 0 (loud) .. 254 (silent) per channel.

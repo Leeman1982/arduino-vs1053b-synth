@@ -3,7 +3,7 @@
 //
 //  Target  : Waveshare RP2040-Zero  (earlephilhower arduino-pico core)
 //  Synth   : VS1053b in real-time MIDI mode over SPI0
-//  Audio   : VS1053b I2S out -> PCM5102 ("m5102") DAC  (optional, see below)
+//  Audio   : VS1053b's own onboard DAC / 3.5mm jack (default)
 //
 //  IMPORTANT - PIN BUDGET
 //  The RP2040-Zero only breaks out 20 GPIO on its three header rows that you
@@ -19,8 +19,9 @@
 // ---------------------------------------------------------------------------
 //  Build options
 // ---------------------------------------------------------------------------
-#define USE_I2S_DAC      1   // 1 = route VS1053 audio out over I2S to PCM5102
-                             // 0 = use the VS1053 board's own 3.5mm TRS jack
+#define USE_I2S_DAC      0   // 0 = use the VS1053 board's own 3.5mm TRS jack
+                             // 1 = (optional/advanced) route VS1053 audio over
+                             //     I2S to an external DAC on VS1053 GPIO4..7
 #define USE_RGB_STATUS   1   // 1 = drive the onboard WS2812 (GP16) as a status
                              //     LED. Requires the Adafruit_NeoPixel library.
 #define OLED_IS_SH1106   1   // 1 = 1.3" SH1106 (most common). 0 = SSD1306.

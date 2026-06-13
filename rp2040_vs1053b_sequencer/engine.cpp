@@ -15,6 +15,7 @@
 #include "scales.h"
 #include "ipc.h"
 #include <pico/time.h>
+#include <pico/platform.h>
 #include <pico/multicore.h>
 
 namespace {
@@ -161,6 +162,17 @@ void drainFifo() {
   }
 }
 
+// Park core 1 in a RAM-resident loop while core 0 programs the flash (LittleFS
+// save/load). Marked __not_in_flash_func so it executes entirely from SRAM:
+// during a flash erase/program XIP is disabled, so the engine core must NOT be
+// fetching instructions from flash. g_engineIdle is raised *inside* this RAM
+// function, so once core 0 sees it the engine is already safely off-flash.
+__attribute__((noinline)) void __not_in_flash_func(enginePark)() {
+  g_engineIdle = true;
+  while (g_enginePause) { __asm__ volatile("nop"); }
+  g_engineIdle = false;
+}
+
 } // namespace
 
 // ----------------------------------------------------------------------------
@@ -182,7 +194,10 @@ void engine_resync() {
 }
 
 void engine_begin() {
-  // Let core0 safely program flash (LittleFS) by parking this core on request.
+  // Register core 1 as a flash-lockout victim. The IPC ring (ipc.cpp) uses
+  // plain RAM, not the SIO FIFO, so the FIFO is free for the lockout protocol
+  // that arduino-pico's LittleFS may use when programming flash from core 0.
+  // (enginePark() is a second, self-contained safety net - see engine_loop.)
   multicore_lockout_victim_init();
   vs1053::begin();
   resetAllVoices();
@@ -196,13 +211,14 @@ void engine_begin() {
 void engine_loop() {
   drainFifo();
 
-  // UI requested silence (e.g. about to write flash): release everything.
+  // UI requested silence (about to write flash): release notes, then park this
+  // core in RAM until the write completes (see enginePark()).
   if (g_enginePause) {
-    if (!g_engineIdle) { resetAllVoices(); vs1053::allNotesOff(); g_engineIdle = true; }
+    resetAllVoices();
+    vs1053::allNotesOff();
     wasPaused = true;
+    enginePark();
     return;
-  } else {
-    g_engineIdle = false;
   }
 
   uint64_t now = time_us_64();

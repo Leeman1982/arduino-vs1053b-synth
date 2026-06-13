@@ -3,7 +3,7 @@
 //  ----------------------------------------------------------------------------
 //  Board   : Waveshare RP2040-Zero        (earlephilhower "arduino-pico" core)
 //  Synth   : VS1053b (General MIDI) over SPI0, real-time MIDI mode
-//  Audio   : VS1053b I2S -> PCM5102 ("m5102") DAC  (USE_I2S_DAC in Config.h)
+//  Audio   : VS1053b onboard DAC / 3.5mm jack
 //  UI      : 1.3" SH1106 OLED (I2C1) + rotary encoder + 8-pot mux + 4 buttons
 //
 //  DUAL-CORE DESIGN (for tight timing)
@@ -11,8 +11,8 @@
 //               and the VS1053. Nothing else runs here, so step timing, swing,
 //               ratchets and micro-nudge are jitter-free.
 //    Core 0  -> ui_task():      OLED, encoder, buttons, pots, menus, flash I/O.
-//               Live MIDI it generates is passed to core 1 over the multicore
-//               FIFO (see ipc.h); core 0 never touches SPI.
+//               Live MIDI it generates is passed to core 1 over a lock-free
+//               ring buffer (see ipc.h); core 0 never touches SPI.
 //
 //  See README for the full wiring table and feature list.
 // ============================================================================

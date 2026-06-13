@@ -35,19 +35,6 @@ void sciWrite(uint8_t reg, uint16_t value) {
   waitDREQ();
 }
 
-uint16_t sciRead(uint8_t reg) {
-  waitDREQ();
-  SPI.beginTransaction(SCI_SPEED);
-  digitalWrite(PIN_VS_XCS, LOW);
-  SPI.transfer(0x03);            // read opcode
-  SPI.transfer(reg);
-  uint16_t v = (uint16_t)SPI.transfer(0x00) << 8;
-  v |= SPI.transfer(0x00);
-  digitalWrite(PIN_VS_XCS, HIGH);
-  SPI.endTransaction();
-  return v;
-}
-
 // Real-time MIDI plugin (from VLSI: vs1053b-rtmidistart). Puts the chip into
 // real-time MIDI mode without needing the GPIO0/GPIO1 boot strapping, which
 // frees those pins -- and on the VS1053 the I2S pins are GPIO4..7 so the two
@@ -70,9 +57,9 @@ void loadRtMidiPlugin() {
 }
 
 #if USE_I2S_DAC
-// Enable the VS1053 I2S output so an external PCM5102 receives the audio.
+// Enable the VS1053 I2S output so an external I2S DAC receives the audio.
 //   VS1053 GPIO4 = I2S_LROUT (WS/LRCK)
-//   VS1053 GPIO5 = I2S_MCLK  (12.288 MHz system clock -> PCM5102 SCK/MC)
+//   VS1053 GPIO5 = I2S_MCLK  (12.288 MHz system clock)
 //   VS1053 GPIO6 = I2S_SCLK  (BCK)
 //   VS1053 GPIO7 = I2S_SDATA (DIN)
 //   GPIO_DDR  (WRAM 0xC017) = 0xF0  -> GPIO4..7 are outputs

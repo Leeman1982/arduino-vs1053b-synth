@@ -1,8 +1,9 @@
 # RP2040 · VS1053b Step Sequencer
 
 A standalone, pro-grade **General-MIDI step sequencer / groovebox** built on a
-**Waveshare RP2040-Zero** driving a **VS1053b** in real-time MIDI mode, with
-clean **I²S audio out to a PCM5102 ("m5102") DAC**.
+**Waveshare RP2040-Zero** driving a **VS1053b** in real-time MIDI mode.
+**Audio comes straight from the VS1053b's onboard DAC / 3.5mm jack** — no
+external DAC needed.
 
 It is a ground-up reimagining of the original AVR `arduino_vs1053b_synth`
 (which just forwarded incoming MIDI). This version is a *self-contained
@@ -37,8 +38,9 @@ CPU load is tiny and timing has enormous headroom.
 
 **Sound (getting the best from the GM module)**
 - VS1053b real-time MIDI mode (low-latency built-in GM tone bank, ch 10 drums)
-- **I²S output to an external PCM5102 DAC** for clean line-level audio
-  (toggle `USE_I2S_DAC` in `Config.h` to fall back to the VS1053's own jack)
+- Audio out from the **VS1053b's own stereo DAC / 3.5mm jack** — nothing else to
+  wire (an optional I²S-to-external-DAC path exists behind `USE_I2S_DAC` if you
+  ever want it, but it is **off** by default)
 - Live performance control: the **8 pots send assignable MIDI CC** per track
   (Volume / Pan / Reverb / Chorus / Mod / Expression / Cutoff / Resonance)
 - Master volume, all-notes-off "PANIC"
@@ -69,18 +71,13 @@ CPU load is tiny and timing has enormous headroom.
 | 3V3  | VCC |
 | GND  | GND |
 
-### PCM5102 ("m5102") — fed by the **VS1053's I²S pins**, *not* the RP2040
-| VS1053b I²S pin | PCM5102 |
-|---|---|
-| GPIO4  → I²S_LROUT | LCK / WS |
-| GPIO5  → I²S_MCLK  | SCK / MC |
-| GPIO6  → I²S_SCLK  | BCK |
-| GPIO7  → I²S_SDATA | DIN |
-| —      | SD/XSMT → 3V3 (un-mute) |
-| —      | VIN → 3V3/5V, GND → GND |
+### Audio out
+Use the **VS1053b board's own 3.5mm headphone/line jack** (or its L/R/GND pads).
+No external DAC is required.
 
-On typical PCM5102A breakouts also tie **FLT, DEMP, FMT → GND**. The firmware
-enables the VS1053 I²S engine automatically (`WRAM 0xC017=0xF0`, `0xC040=0x0C`).
+> *Optional:* setting `USE_I2S_DAC 1` in `Config.h` instead streams the VS1053's
+> audio over its I²S pins (GPIO4=LROUT, GPIO5=MCLK, GPIO6=SCLK, GPIO7=SDATA) to
+> an external I²S DAC. Left off by default.
 
 ### 1.3" OLED — I²C1
 | RP2040-Zero | OLED |
@@ -118,7 +115,7 @@ Wire the 8 pot wipers to mux channels **Y0–Y7**; pot outer legs to 3V3 and GND
 
 ### Power
 USB-C (5V) on the RP2040-Zero powers everything; the 3V3 pin feeds the
-peripherals. The VS1053 and PCM5102 run happily at 3V3.
+peripherals. The VS1053 runs happily at 3V3.
 
 ---
 

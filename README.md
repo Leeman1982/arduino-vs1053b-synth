@@ -5,9 +5,10 @@ Synth / sequencer projects built around the **VS1053b** General-MIDI codec.
 ## ⭐ New: RP2040 VS1053b Step Sequencer  → [`rp2040_vs1053b_sequencer/`](rp2040_vs1053b_sequencer/)
 
 A standalone, dual-core **step sequencer / groovebox** on a Waveshare
-**RP2040-Zero**, talking to the VS1053b over **SPI** in real-time MIDI mode, with
-clean **I²S output to a PCM5102 DAC**. 1.3" OLED + rotary encoder + 8-pot module
-+ momentary switches give full hands-on control.
+**RP2040-Zero**, talking to the VS1053b over **SPI** in real-time MIDI mode.
+Audio comes from the VS1053b's own DAC / 3.5mm jack. 1.3" OLED + rotary encoder +
+8-pot module (via a 74HC4051 mux) + momentary switches give full hands-on
+control.
 
 Highlights: 8 tracks × 16 steps, polyrhythms, swing, probability, ratchets,
 micro-nudge, scale-lock, Euclidean fills, **pattern chaining into savable
