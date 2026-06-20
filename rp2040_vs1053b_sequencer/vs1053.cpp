@@ -10,9 +10,11 @@ namespace {
 // ----- VS10xx SCI registers -------------------------------------------------
 constexpr uint8_t SCI_MODE     = 0x00;
 constexpr uint8_t SCI_STATUS   = 0x01;
+constexpr uint8_t SCI_BASS     = 0x02;
 constexpr uint8_t SCI_CLOCKF   = 0x03;
 constexpr uint8_t SCI_WRAM     = 0x06;
 constexpr uint8_t SCI_WRAMADDR = 0x07;
+constexpr uint8_t SCI_AIADDR   = 0x0A;
 constexpr uint8_t SCI_VOL      = 0x0B;
 
 // SCI runs slow (max CLKI/7). PCM/MIDI traffic on XDCS runs faster once the
@@ -35,10 +37,12 @@ void sciWrite(uint8_t reg, uint16_t value) {
   waitDREQ();
 }
 
-// Real-time MIDI plugin (from VLSI: vs1053b-rtmidistart). Puts the chip into
-// real-time MIDI mode without needing the GPIO0/GPIO1 boot strapping, which
-// frees those pins -- and on the VS1053 the I2S pins are GPIO4..7 so the two
-// features coexist happily.
+// "VS1053b Realtime MIDI Start" patch (VLSI vs1053b-rtmidistart.zip). Loading
+// this over SCI puts the chip into real-time MIDI mode in software, so we don't
+// depend on the GPIO0/GPIO1 boot strap -- which on the common clone boards is
+// tied low through 100k and unavailable. Its final record writes 0x50 to
+// SCI_AIADDR (0x0A), which self-starts the loaded code, so no extra AIADDR
+// write is needed.
 const uint16_t kRtMidiPlugin[] = {
   0x0007, 0x0001, 0x8050, 0x0006, 0x0014, 0x0030, 0x0715, 0xb080,
   0x3400, 0x0007, 0x9255, 0x3d00, 0x0024, 0x0030, 0x0295, 0x6890,
@@ -46,13 +50,21 @@ const uint16_t kRtMidiPlugin[] = {
   0x0200, 0x000a, 0x0001, 0x0050,
 };
 
-void loadRtMidiPlugin() {
+// Standard VS10xx compressed-plugin loader: read [addr][count]; if count's high
+// bit is set it's an RLE run (write one following word 'count & 0x7FFF' times),
+// otherwise copy the next 'count' words to register 'addr' one by one.
+void applyPatch(const uint16_t* p, unsigned len) {
   unsigned i = 0;
-  const unsigned n = sizeof(kRtMidiPlugin) / sizeof(kRtMidiPlugin[0]);
-  while (i < n) {
-    uint16_t addr  = kRtMidiPlugin[i++];
-    uint16_t count = kRtMidiPlugin[i++];
-    while (count--) sciWrite(addr, kRtMidiPlugin[i++]);
+  while (i < len) {
+    uint16_t addr  = p[i++];
+    uint16_t count = p[i++];
+    if (count & 0x8000) {                 // RLE run
+      count &= 0x7FFF;
+      uint16_t val = p[i++];
+      while (count--) sciWrite(addr, val);
+    } else {                              // copy run
+      while (count--) sciWrite(addr, p[i++]);
+    }
   }
 }
 
@@ -97,12 +109,16 @@ void begin() {
   delay(10);
   waitDREQ();
 
-  // Raise the internal clock so MIDI rendering keeps up and I2S has a clean
-  // MCLK. 3.0x multiplier (XTALI 12.288 MHz -> CLKI ~36.9 MHz).
-  sciWrite(SCI_CLOCKF, 0x6000);
+  // Raise the internal clock BEFORE loading the patch. 3.5x (0x8000) is the
+  // VS1053b's own default and gives ample polyphony/reverb headroom
+  // (XTALI 12.288 MHz -> CLKI ~43 MHz, well under the 55.3 MHz max).
+  sciWrite(SCI_CLOCKF, 0x8000);
+  while (!digitalRead(PIN_VS_DREQ)) {}     // multiplier change can drop to 1.0x briefly
   delay(2);
 
-  loadRtMidiPlugin();
+  sciWrite(SCI_BASS, 0x0000);              // bass/treble flat -> clean synth output
+
+  applyPatch(kRtMidiPlugin, sizeof(kRtMidiPlugin) / sizeof(kRtMidiPlugin[0]));
 #if USE_I2S_DAC
   enableI2S();
 #endif
