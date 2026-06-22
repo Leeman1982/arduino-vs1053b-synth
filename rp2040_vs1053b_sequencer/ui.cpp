@@ -23,6 +23,7 @@
 #include "ipc.h"
 #include "scales.h"
 #include "gm_names.h"
+#include <Wire.h>
 #include <U8g2lib.h>
 
 // ---- display -----------------------------------------------------------------
