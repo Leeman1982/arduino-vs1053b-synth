@@ -120,9 +120,11 @@ static void handleButtons(){
       LOCK();
       if (shift){ if(sg.length>0){ uint8_t s=clampi(cursor/2,0,sg.length-1); for(uint8_t k=s;k+1<sg.length;k++)sg.slot[k]=sg.slot[k+1]; sg.length--; } }
       else      { if(sg.length<MAX_SONG_SLOTS){ uint8_t s=sg.length?clampi(cursor/2+1,0,sg.length):0; for(int k=sg.length;k>s;k--)sg.slot[k]=sg.slot[k-1]; sg.slot[s].pattern=g_curPattern; sg.slot[s].repeats=1; sg.length++; cursor=s*2; } }
+      if (sg.length) cursor=clampi(cursor,0,sg.length*2-1); else cursor=0;
       UNLOCK();
       setToast(shift?"Slot deleted":"Slot inserted");
     }
+    input_btn_long(BTN_REC);   // discard: FUNC long-press has no song action
   } else {
     if (input_btn_pressed(BTN_REC)){ LOCK(); Track&tr=curPattern().track[selTrack]; if(shift)tr.solo^=1; else tr.mute^=1; UNLOCK(); setToast(shift?"Solo":"Mute"); }
     if (input_btn_long(BTN_REC)){ LOCK(); Track&tr=curPattern().track[selTrack]; for(uint8_t s=0;s<MAX_STEPS;s++)tr.steps[s].active=0; UNLOCK(); setToast("Track cleared"); }
@@ -322,6 +324,7 @@ static void songIn(int d,bool p,bool sh){
   Song& sg=g_proj.song;
   if(sg.length==0){ if(p){LOCK();sg.length=1;sg.slot[0].pattern=0;sg.slot[0].repeats=1;UNLOCK();cursor=0;} return; }
   int nFields=sg.length*2;
+  if(cursor>nFields-1) cursor=nFields-1;   // stay in range (e.g. after a delete)
   if(editing){ int slot=cursor/2,field=cursor%2,step=sh?4:1; LOCK();
     if(field==0) sg.slot[slot].pattern=wrapi(sg.slot[slot].pattern+d,NUM_PATTERNS);
     else         sg.slot[slot].repeats=clampi(sg.slot[slot].repeats+d*step,1,255);

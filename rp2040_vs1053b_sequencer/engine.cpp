@@ -193,6 +193,13 @@ void engine_resync() {
   stepEventUs = baseStepUs;          // step 0 is on the beat (no swing)
 }
 
+// RAM-resident so it is safe to spin here while core 0 is still in setup() and
+// might be formatting/mounting LittleFS (a flash erase disables XIP). core 0
+// sets g_proj.magic as the very last thing in its init, after storage_begin().
+__attribute__((noinline)) void __not_in_flash_func(engine_wait_ready)() {
+  while (g_proj.magic != PROJECT_MAGIC) { __asm__ volatile("nop"); }
+}
+
 void engine_begin() {
   // Register core 1 as a flash-lockout victim. The IPC ring (ipc.cpp) uses
   // plain RAM, not the SIO FIFO, so the FIFO is free for the lockout protocol

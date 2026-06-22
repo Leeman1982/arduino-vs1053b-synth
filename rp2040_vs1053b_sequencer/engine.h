@@ -4,6 +4,7 @@
 #pragma once
 #include <Arduino.h>
 
+void engine_wait_ready(); // RAM-resident: blocks core1 until core0 setup() done
 void engine_begin();   // call from setup1(): brings up VS1053 + timing state
 void engine_loop();    // call from loop1(): the tight real-time loop
 

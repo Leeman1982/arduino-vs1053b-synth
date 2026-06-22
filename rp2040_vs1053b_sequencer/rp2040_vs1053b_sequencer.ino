@@ -31,10 +31,10 @@ static Adafruit_NeoPixel g_rgb(1, PIN_RGB, NEO_GRB + NEO_KHZ800);
 // ------------------------------ CORE 0 (UI) --------------------------------
 void setup() {
   mutex_init(&g_lock);
-  model_init_defaults();
+  storage_begin();                 // mount LittleFS first (may format on 1st boot)
+  model_init_defaults();           // sets g_proj.magic LAST = "core0 ready" signal
   randomSeed(analogRead(PIN_MUX_ADC) ^ micros());
 
-  storage_begin();
   input_begin();
   ui_begin();
 
@@ -73,9 +73,9 @@ void loop() {
 
 // ----------------------------- CORE 1 (engine) -----------------------------
 void setup1() {
-  // Wait until core 0 has initialised shared state. model_init_defaults() sets
-  // g_proj.magic last, so this also guarantees the mutex + project are ready.
-  while (g_proj.magic != PROJECT_MAGIC) tight_loop_contents();
+  // Block (from RAM) until core 0 has finished setup() - including any LittleFS
+  // format - so we never execute flash code during a flash erase.
+  engine_wait_ready();
   engine_begin();
 }
 
