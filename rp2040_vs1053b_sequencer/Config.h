@@ -25,6 +25,11 @@
 #define USE_RGB_STATUS   1   // 1 = drive the onboard WS2812 (GP16) as a status
                              //     LED. Requires the Adafruit_NeoPixel library.
 #define OLED_IS_SH1106   1   // 1 = 1.3" SH1106 (most common). 0 = SSD1306.
+#define OLED_USE_SW_I2C  1   // 1 = U8g2 software (bit-bang) I2C  <-- most robust.
+                             //     Works on ANY GPIO pair, sidestepping the
+                             //     RP2040 fixed pin->peripheral mapping and the
+                             //     flaky Wire1/2ND_HW_I2C path. Recommended.
+                             // 0 = hardware I2C1 (Wire1) on GP10/GP11.
 
 // ---------------------------------------------------------------------------
 //  SPI0  ->  VS1053b   (all VS1053 access happens on CORE 1 only)
@@ -38,10 +43,13 @@
 #define PIN_VS_RESET     8   // VS1053 XRST (active low)
 
 // ---------------------------------------------------------------------------
-//  I2C1  ->  1.3" OLED   (UI, on CORE 0 only)
+//  1.3" SH1106 OLED   (UI, on CORE 0 only)
+//  By default driven with U8g2 SOFTWARE I2C (see OLED_USE_SW_I2C), so these can
+//  be any two free GPIO. They also happen to be a valid hardware I2C1 pair
+//  (GP10=SDA, GP11=SCL) if you set OLED_USE_SW_I2C 0.  Module I2C addr = 0x3C.
 // ---------------------------------------------------------------------------
-#define PIN_OLED_SDA     10  // I2C1 SDA
-#define PIN_OLED_SCL     11  // I2C1 SCL
+#define PIN_OLED_SDA     10  // OLED SDA
+#define PIN_OLED_SCL     11  // OLED SCL
 
 // ---------------------------------------------------------------------------
 //  Rotary encoder (with push switch)

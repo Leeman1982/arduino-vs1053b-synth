@@ -79,7 +79,12 @@ No external DAC is required.
 > audio over its I²S pins (GPIO4=LROUT, GPIO5=MCLK, GPIO6=SCLK, GPIO7=SDATA) to
 > an external I²S DAC. Left off by default.
 
-### 1.3" OLED — I²C1
+### 1.3" OLED (SH1106) — software I²C
+Driven by U8g2 **software (bit-bang) I²C** by default (`OLED_USE_SW_I2C 1`), so the
+two data pins can be any free GPIO and it is immune to the RP2040 fixed
+pin→peripheral mapping. Set `OLED_USE_SW_I2C 0` to use hardware I²C1 (Wire1) on
+the same pins instead. Module I²C address is 0x3C.
+
 | RP2040-Zero | OLED |
 |---|---|
 | GP10 | SDA |

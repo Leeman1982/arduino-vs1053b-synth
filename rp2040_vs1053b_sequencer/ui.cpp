@@ -27,10 +27,24 @@
 #include <U8g2lib.h>
 
 // ---- display -----------------------------------------------------------------
-#if OLED_IS_SH1106
-U8G2_SH1106_128X64_NONAME_F_2ND_HW_I2C  g_oled(U8G2_R0, U8X8_PIN_NONE);
+//  Two transport options, picked in Config.h:
+//    OLED_USE_SW_I2C 1 -> software (bit-bang) I2C. Works on any GPIO pair and is
+//                         immune to the RP2040 fixed pin->peripheral mapping, so
+//                         it just needs the two wires on GP10/GP11. Most robust.
+//    OLED_USE_SW_I2C 0 -> hardware I2C1 via Wire1 (GP10=SDA, GP11=SCL).
+//  The SW_I2C constructor takes the pins directly: (rotation, SCL, SDA, reset).
+#if OLED_USE_SW_I2C
+  #if OLED_IS_SH1106
+  U8G2_SH1106_128X64_NONAME_F_SW_I2C   g_oled(U8G2_R0, PIN_OLED_SCL, PIN_OLED_SDA, U8X8_PIN_NONE);
+  #else
+  U8G2_SSD1306_128X64_NONAME_F_SW_I2C  g_oled(U8G2_R0, PIN_OLED_SCL, PIN_OLED_SDA, U8X8_PIN_NONE);
+  #endif
 #else
-U8G2_SSD1306_128X64_NONAME_F_2ND_HW_I2C g_oled(U8G2_R0, U8X8_PIN_NONE);
+  #if OLED_IS_SH1106
+  U8G2_SH1106_128X64_NONAME_F_2ND_HW_I2C  g_oled(U8G2_R0, U8X8_PIN_NONE);
+  #else
+  U8G2_SSD1306_128X64_NONAME_F_2ND_HW_I2C g_oled(U8G2_R0, U8X8_PIN_NONE);
+  #endif
 #endif
 
 // ---- performance CC targets for the 8 pots ----------------------------------
@@ -371,8 +385,15 @@ static void fileDr(){
 //  Public
 // ============================================================================
 void ui_begin(){
+#if !OLED_USE_SW_I2C
+  // Hardware I2C1: route Wire1 onto the OLED pins BEFORE begin() (gotcha #3).
   Wire1.setSDA(PIN_OLED_SDA); Wire1.setSCL(PIN_OLED_SCL);
-  g_oled.setBusClock(400000); g_oled.begin();
+#endif
+  // 400 kHz fast-mode. For SW I2C this just sets the bit-bang delay target;
+  // for HW I2C it is applied to Wire1 inside begin().
+  g_oled.setI2CAddress(0x3C << 1);   // module is fixed at 0x3C (U8g2 wants <<1)
+  g_oled.setBusClock(400000);
+  g_oled.begin();
   g_oled.clearBuffer(); g_oled.setFont(u8g2_font_6x10_tf);
   g_oled.drawStr(8,28,"RP2040 VS1053b"); g_oled.drawStr(20,44,"STEP SEQUENCER");
   g_oled.sendBuffer();
